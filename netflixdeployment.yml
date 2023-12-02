@@ -1,3 +1,31 @@
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: netflix-pv
+spec:
+  storageClassName: standard
+  capacity:
+    storage: 1000Mi
+  accessModes: 
+    - ReadWriteOnce
+  hostPath:
+    path: /tmp/netflixdatapv
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata: 
+  name: netflix-pvc
+spec:
+  storageClassName: standard
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 700Mi
+
+---
+
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -22,14 +50,23 @@ spec:
       containers:
         - name: netflixapp
           image: vishwaranjanpandey/netflix
-          imagePullPolicy : Always
+          imagePullPolicy: Always
           resources:
-            limits: 
-              memory: 1000Mi 
+            limits:
+              memory: 1000Mi
               cpu: 500m
             requests:
               memory: 500Mi
-              cpu: 250m 
+              cpu: 250m
+          volumeMounts:    
+            - name: netflix-pv
+              mountPath: /var/log/nginx/
+      volumes:
+        - name: netflix-pv
+          persistentVolumeClaim:
+            claimName: netflix-pvc
+
+
 ---
 apiVersion: v1
 kind: Service 
@@ -55,13 +92,13 @@ spec:
     kind: Deployment
     name: netflixweb
   minReplicas: 2
-  maxReplicas: 4
+  maxReplicas: 10
   metrics:
     - type: Resource
       resource:
         name: cpu
         target:
           type: Utilization  
-          averageUtilization: 60
+          averageUtilization: 40
 
 
